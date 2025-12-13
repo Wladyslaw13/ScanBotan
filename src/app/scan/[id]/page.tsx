@@ -42,22 +42,24 @@ export default async function ScanResultPage({
     ? result.recommendations
     : [];
 
-  function capitalize(str?: string) {
-    if (!str) return '';
+  function capitalize(str?: unknown) {
+    if (typeof str !== 'string') return '';
     return str.charAt(0).toUpperCase() + str.slice(1);
   }
 
   if (!plantFound) {
+    const reason =
+      typeof result?.reason === 'string'
+        ? result.reason
+        : 'Выберите фото с одним чётким растением и попробуйте снова.';
+
     return (
       <div className='min-h-screen flex items-center justify-center bg-red-50 dark:bg-red-900/20'>
         <div className='max-w-2xl p-6 text-center'>
           <p className='text-red-600 dark:text-red-400 text-3xl font-semibold mb-4'>
             Растение не распознано
           </p>
-          <p className='text-muted-foreground mb-6'>
-            {result?.reason ||
-              'Выберите фото с одним чётким растением и попробуйте снова.'}
-          </p>
+          <p className='text-muted-foreground mb-6'>{reason}</p>
           <Link href='/' className='inline-flex items-center text-primary'>
             ← Назад
           </Link>
@@ -86,8 +88,6 @@ export default async function ScanResultPage({
                 alt='Загруженное растение'
                 fill
                 className='object-cover'
-                // Если используешь data URL, next/image обычно работает, но при проблемах можно добавить unoptimized
-                // unoptimized
               />
             </div>
           </div>

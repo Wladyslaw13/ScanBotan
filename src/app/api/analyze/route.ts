@@ -95,15 +95,25 @@ export async function POST(req: NextRequest) {
 
   const together = new Together({ apiKey });
 
-  const systemPrompt = `You are a plant expert. Analyze the image and respond STRICTLY as medified JSON with keys:
-plantFound(boolean), plantName(string|null), healthCondition(string|null),
-recommendations(array of strings), reason(string).
-If multiple plants or not a plant — set plantFound=false and explain in reason.
-Language: only Russian (русский). Ни в коем случае не путай с украинским, перепроверяй этот момент перед ответом!`;
+  const systemPrompt = `Верни ТОЛЬКО валидный JSON.
+Никакого текста, markdown, комментариев.
+
+Если растение не распознано или растений в кадре много что мешает распознаванию какого-то определённого, верни plantFound: false, в reason верни строку с причиной ошибки распознавания.
+
+Формат СТРОГО:
+{
+  "plantFound": boolean,
+  "plantName": string | null,
+  "healthCondition": string | null,
+  "recommendations": string[],
+  "reason": string | null
+}
+
+Язык: русский.`;
 
   try {
     const response = await together.chat.completions.create({
-      model: 'meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8',
+      model: 'mistralai/Ministral-3-14B-Instruct-2512',
       messages: [
         { role: 'system', content: systemPrompt },
         {
@@ -111,7 +121,7 @@ Language: only Russian (русский). Ни в коем случае не пу
           content: [
             {
               type: 'text',
-              text: 'Определи растение, его состояние здоровья и дай супер подробные и детальные рекомендации по уходу.',
+              text: 'Определи растение, его состояние здоровья и дай краткие, но полезные рекомендации по уходу.',
             },
             {
               type: 'image_url',
@@ -123,11 +133,53 @@ Language: only Russian (русский). Ни в коем случае не пу
         },
       ],
       temperature: 0.2,
-      max_tokens: 500,
+      max_tokens: 600,
     });
 
     const text = response.choices?.[0]?.message?.content || '';
-    const parsed = JSON_EXTRACTOR(text);
+    let parsed = JSON_EXTRACTOR(text);
+
+    if (!parsed) {
+      const retryResponse = await together.chat.completions.create({
+        model: 'Qwen/Qwen3-VL-32B-Instruct',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: 'Определи растение, его состояние здоровья и дай краткие, но полезные рекомендации по уходу.',
+              },
+              {
+                type: 'image_url',
+                image_url: {
+                  url: dataUrl,
+                },
+              },
+            ],
+          },
+        ],
+        temperature: 0,
+        max_tokens: 600,
+      });
+
+      const retryText = retryResponse.choices?.[0]?.message?.content || '';
+      const retryParsed = JSON_EXTRACTOR(retryText);
+
+      if (retryParsed) {
+        parsed = retryParsed;
+      } else {
+        console.warn(
+          'Невалидный ответ модели после повторного запроса:',
+          retryText
+        );
+        return NextResponse.json(
+          { error: 'Не удалось распознать ответ модели' },
+          { status: 500 }
+        );
+      }
+    }
 
     if (!parsed || typeof parsed !== 'object') {
       console.warn('Невалидный ответ модели:', text);
@@ -135,6 +187,10 @@ Language: only Russian (русский). Ни в коем случае не пу
         { error: 'Не удалось распознать ответ модели' },
         { status: 500 }
       );
+    }
+
+    if (!Array.isArray(parsed.recommendations)) {
+      parsed.recommendations = [];
     }
 
     const plantFound = Boolean(parsed.plantFound);

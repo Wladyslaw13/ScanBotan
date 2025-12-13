@@ -13,11 +13,22 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+
   typescript: {
     ignoreBuildErrors: true,
   },
+
   turbopack: {
     rules: {},
+  },
+
+  webpack: (config) => {
+    config.resolve = config.resolve || {};
+    config.resolve.alias = {
+      ...(config.resolve.alias || {}),
+      lzo: false,
+    };
+    return config;
   },
 };
 
