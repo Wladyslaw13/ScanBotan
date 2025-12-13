@@ -28,6 +28,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { SubscribeDialog } from '@/components/SubscribeDialog';
 
 function classNames(...c: (string | false | null | undefined)[]) {
   return c.filter(Boolean).join(' ');
@@ -54,7 +55,6 @@ export default function Home() {
   const [scans, setScans] = useState<
     { id: number; createdAt: string; result: any }[]
   >([]);
-  const [subscribed, setSubscribed] = useState<boolean | null>(null);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -98,18 +98,20 @@ export default function Home() {
   }
 
   async function openHistory() {
-    setHistoryOpen(true);
     setHistoryLoading(true);
     setHistoryError(null);
+
     try {
       const r = await fetch('/api/scans');
       if (r.status === 402) {
-        setSubscribed(false);
-        setScans([]);
+        setHistoryError(null);
+        setHistoryOpen(false);
+        setSubscribeOpen(true);
+        return;
       } else if (r.ok) {
         const data = await r.json();
-        setSubscribed(true);
         setScans(data.scans || []);
+        setHistoryOpen(true);
       } else if (r.status === 401) {
         setHistoryError('Требуется войти в аккаунт');
       } else {
@@ -127,6 +129,7 @@ export default function Home() {
       setUploadError('Сначала выберите изображение');
       return;
     }
+    if (scanning) return;
     setUploadError(null);
     setScanning(true);
     try {
@@ -175,7 +178,8 @@ export default function Home() {
       if (!r.ok) throw new Error(data?.error || 'Не удалось создать оплату');
       if (data.url) window.location.href = data.url;
     } catch (e: any) {
-      alert(e?.message || 'Ошибка оплаты');
+      console.error('CHECKOUT ERROR:', e);
+      alert('Не удалось начать оплату. Попробуйте позже.');
     }
   }
 
@@ -225,9 +229,12 @@ export default function Home() {
                   'rounded-2xl border-2 border-green-500/70 bg-muted text-left w-full mx-auto',
                   'p-3 sm:p-4 pr-10 h-full overflow-hidden',
                   'transition-colors',
-                  uploadError ? 'border-destructive' : ''
+                  uploadError ? 'border-destructive' : '',
+                  scanning && 'pointer-events-none opacity-90'
                 )}
-                onClick={() => inputRef.current?.click()}
+                onClick={() => {
+                  if (!scanning) inputRef.current?.click();
+                }}
                 onDragOver={(e) => {
                   e.preventDefault();
                 }}
@@ -260,6 +267,32 @@ export default function Home() {
                           alt='Предпросмотр'
                           className='max-w-full max-h-full object-contain'
                         />
+
+                        {/* SCI-FI SCAN OVERLAY */}
+                        {scanning && (
+                          <div className='absolute inset-0 z-10 pointer-events-none'>
+                            {/* dark glass */}
+                            <div className='absolute inset-0 bg-black/40 backdrop-blur-[1px]' />
+
+                            {/* grid */}
+                            <div
+                              className='absolute inset-0 opacity-30'
+                              style={{
+                                backgroundImage:
+                                  'linear-gradient(rgba(0,255,120,0.15) 1px, transparent 1px), linear-gradient(90deg, rgba(0,255,120,0.15) 1px, transparent 1px)',
+                                backgroundSize: '40px 40px',
+                              }}
+                            />
+
+                            {/* scanning line */}
+                            <div className='absolute left-0 right-0 h-[2px] bg-green-400 shadow-[0_0_20px_rgba(0,255,120,0.9)] animate-scanline' />
+
+                            {/* HUD text */}
+                            <div className='absolute bottom-4 left-4 text-green-400 text-xs tracking-widest font-mono'>
+                              СКАНИРОВАНИЕ...
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -288,12 +321,21 @@ export default function Home() {
                     setUploadError(null);
                   }}
                 />
-                <Button className='flex-1' onClick={startScan}>
-                  Сканировать
+                <Button
+                  className={classNames(
+                    'flex-1 transition-opacity',
+                    scanning && 'opacity-70 cursor-not-allowed'
+                  )}
+                  onClick={startScan}
+                  disabled={scanning}
+                >
+                  {scanning ? 'Сканирование…' : 'Сканировать'}
                 </Button>
                 {preview && (
                   <Button
                     variant='ghost'
+                    disabled={scanning}
+                    className={scanning ? 'opacity-50 cursor-not-allowed' : ''}
                     onClick={() => {
                       setFile(null);
                       setUploadError(null);
@@ -306,16 +348,6 @@ export default function Home() {
             </div>
           </div>
         </main>
-
-        {/* Fullscreen loader */}
-        {scanning && (
-          <div className='fixed inset-0 z-50 grid place-items-center bg-background/70 backdrop-blur-sm'>
-            <div className='text-center'>
-              <div className='mx-auto mb-4 h-12 w-12 rounded-full border-4 border-green-500 border-t-transparent animate-spin' />
-              <p className='text-sm text-foreground/80'>Анализ изображения…</p>
-            </div>
-          </div>
-        )}
 
         {/* Login dialog */}
         <Dialog open={loginOpen} onOpenChange={setLoginOpen}>
@@ -386,25 +418,12 @@ export default function Home() {
                 </div>
               ) : historyError ? (
                 <div className='text-destructive'>{historyError}</div>
-              ) : subscribed === false ? (
-                <div className='space-y-3'>
-                  <p>
-                    Подписка не активна. Оформите подписку, чтобы получить
-                    доступ к истории и неограниченным сканированиям.
-                  </p>
-                  <Button
-                    onClick={() => {
-                      setHistoryOpen(false);
-                      setSubscribeOpen(true);
-                    }}
-                  >
-                    Оформить подписку
-                  </Button>
-                </div>
               ) : (
                 <div className='space-y-3'>
                   {scans.length === 0 ? (
-                    <p className='text-muted-foreground'>История пуста.</p>
+                    <p className='text-muted-foreground'>
+                      История сканирований пуста.
+                    </p>
                   ) : (
                     <div className='rounded-lg border'>
                       <Table>
@@ -444,26 +463,11 @@ export default function Home() {
           </DialogContent>
         </Dialog>
 
-        {/* Subscribe dialog */}
-        <Dialog open={subscribeOpen} onOpenChange={setSubscribeOpen}>
-          <DialogContent className='sm:max-w-md'>
-            <DialogHeader>
-              <DialogTitle>Подписка — 200 ₽/мес</DialogTitle>
-            </DialogHeader>
-            <p className='text-sm text-foreground/80'>
-              Неограниченные сканирования и доступ к истории. Оплата российской
-              картой через YooKassa.
-            </p>
-            <div className='flex gap-2'>
-              <Button className='flex-1' onClick={createCheckout}>
-                Оформить подписку
-              </Button>
-              <Button variant='ghost' onClick={() => setSubscribeOpen(false)}>
-                Позже
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+        <SubscribeDialog
+          open={subscribeOpen}
+          onOpenChange={setSubscribeOpen}
+          onSubscribe={createCheckout}
+        />
       </div>
     </TooltipProvider>
   );

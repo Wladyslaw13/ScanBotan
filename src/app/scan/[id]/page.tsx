@@ -5,18 +5,18 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { Session } from 'next-auth';
 import { notFound } from 'next/navigation';
+import { checkSubscription } from '@/lib/checkSubscription';
+import { ScanResultClient } from './ScanResultClient';
 
 export default async function ScanResultPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
-  // Получаем сессию и явно приводим тип
   const session = (await getServerSession(
     authOptions as any
   )) as Session | null;
 
-  // Если нет сессии — скрываем ресурс (404)
   if (!session?.user?.id) return notFound();
 
   const userId = Number(session.user.id);
@@ -24,6 +24,8 @@ export default async function ScanResultPage({
 
   const numericId = Number(id);
   if (!Number.isFinite(numericId)) return notFound();
+
+  const hasSubscription = await checkSubscription(userId);
 
   // Получаем скан
   const scan = await prisma.scan.findUnique({ where: { id: numericId } });
@@ -122,6 +124,13 @@ export default async function ScanResultPage({
               </ul>
             </div>
           </div>
+        </div>
+
+        <div className='mt-6 justify-center flex'>
+          <ScanResultClient
+            scanId={scan.id}
+            hasSubscription={hasSubscription}
+          />
         </div>
       </div>
     </div>

@@ -19,6 +19,9 @@ export async function POST() {
       { status: 500 }
     );
 
+  console.log('YOOKASSA_SHOP_ID', shopId);
+  console.log('YOOKASSA_SECRET', secret ? 'OK' : 'MISSING');
+
   const yoo = new (YooKassa as any)({ shopId, secretKey: secret });
 
   try {
@@ -37,6 +40,7 @@ export async function POST() {
         payment?.confirmation?.return_url,
     });
   } catch (e: any) {
+    console.error('YOOKASSA ERROR', e);
     return NextResponse.json(
       { error: e?.message || 'Ошибка создания платежа' },
       { status: 500 }

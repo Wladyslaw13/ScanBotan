@@ -130,3 +130,16 @@ nextjs-portal {
 button {
   cursor: pointer;
 }
+
+@keyframes scanline {
+  0% {
+    top: 0%;
+  }
+  100% {
+    top: 100%;
+  }
+}
+
+.animate-scanline {
+  animation: scanline 2.5s linear infinite;
+}
