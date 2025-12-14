@@ -8,6 +8,23 @@ export const metadata: Metadata = {
   title: 'СканБотан',
   description:
     'Удобный инструмент для сканирования и управления ботаническими данными.',
+  openGraph: {
+    title: 'СканБотан',
+    description:
+      'Удобный инструмент для сканирования и управления ботаническими данными.',
+    url: 'https://scan-botan-13.vercel.app',
+    siteName: 'СканБотан',
+    images: [
+      {
+        url: 'https://scan-botan-13.vercel.app/og.png',
+        width: 1200,
+        height: 630,
+        alt: 'СканБотан — сканирование и управление ботаническими данными',
+      },
+    ],
+    locale: 'ru_RU',
+    type: 'website',
+  },
 };
 
 export default async function RootLayout({
