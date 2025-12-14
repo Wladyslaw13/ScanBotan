@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import Together from 'together-ai';
 import { getToken } from 'next-auth/jwt';
 import { Buffer } from 'buffer';
+import { checkSubscription } from '@/lib/checkSubscription';
 
 /**
  * Извлекает первый JSON-объект из текста,
@@ -50,6 +51,24 @@ export async function POST(req: NextRequest) {
   }
 
   const userId = Number(token.id);
+
+  const hasSubscription = await checkSubscription(userId);
+
+  if (!hasSubscription) {
+    const count = await prisma.scan.count({
+      where: { userId },
+    });
+
+    if (count >= 10) {
+      return NextResponse.json(
+        {
+          error:
+            'Достигнут лимит 10 бесплатных сканов. Оформите подписку, чтобы продолжить.',
+        },
+        { status: 402 }
+      );
+    }
+  }
 
   // Проверка формата multipart
   const contentType = req.headers.get('content-type') || '';
@@ -194,30 +213,6 @@ export async function POST(req: NextRequest) {
     }
 
     const plantFound = Boolean(parsed.plantFound);
-
-    // Проверка лимита бесплатных сканов
-    const sub = await prisma.subscription.findUnique({ where: { userId } });
-
-    const hasActive =
-      sub &&
-      sub.status === 'active' &&
-      (!sub.currentPeriodEnd || sub.currentPeriodEnd > new Date());
-
-    if (!hasActive && plantFound) {
-      const count = await prisma.scan.count({
-        where: { userId, plantFound: true },
-      });
-
-      if (count >= 10) {
-        return NextResponse.json(
-          {
-            error:
-              'Достигнут лимит 10 бесплатных сканов с растением. Оформите подписку, чтобы продолжить.',
-          },
-          { status: 402 }
-        );
-      }
-    }
 
     // Сохраняем скан
     const scan = await prisma.scan.create({

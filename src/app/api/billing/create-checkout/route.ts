@@ -25,7 +25,7 @@ export async function POST() {
   const yoo = new (YooKassa as any)({ shopId, secretKey: secret });
 
   try {
-    const amountValue = '200.00';
+    const amountValue = '100.00';
     const payment = await yoo.createPayment({
       amount: { value: amountValue, currency: 'RUB' },
       capture: true,
