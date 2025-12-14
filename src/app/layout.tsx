@@ -3,6 +3,19 @@ import './globals.css';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import Providers from './providers';
+import { Geist, Geist_Mono } from 'next/font/google';
+
+const geistSans = Geist({
+  subsets: ['latin', 'cyrillic'],
+  variable: '--font-geist-sans',
+  display: 'swap',
+});
+
+const geistMono = Geist_Mono({
+  subsets: ['latin', 'cyrillic'],
+  variable: '--font-geist-mono',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: 'СканБотан',
@@ -35,7 +48,11 @@ export default async function RootLayout({
   const session = await getServerSession(authOptions);
 
   return (
-    <html lang='ru' suppressHydrationWarning>
+    <html
+      lang='ru'
+      className={`${geistSans.variable} ${geistMono.variable}`}
+      suppressHydrationWarning
+    >
       <head>
         <script
           dangerouslySetInnerHTML={{
