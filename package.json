@@ -1,7 +1,7 @@
 {
   "name": "scan-botan",
   "version": "1.0.0",
-  "description": "A service for uploading photos of plants to determine their species, condition, and potential recommendations.",
+  "description": "A service for scanning and managing botanical data.",
   "scripts": {
     "dev": "next dev",
     "postinstall": "prisma generate && node -e \"if (!process.env.CI) require('child_process').execSync('prisma db push', { stdio: 'inherit' })\"",

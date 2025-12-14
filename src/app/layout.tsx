@@ -5,9 +5,9 @@ import { authOptions } from '@/lib/auth';
 import Providers from './providers';
 
 export const metadata: Metadata = {
-  title: 'СканБотан — сканер растений',
+  title: 'СканБотан',
   description:
-    'Загрузите фото растения: определение вида, состояние и рекомендации по уходу.',
+    'Удобный инструмент для сканирования и управления ботаническими данными.',
 };
 
 export default async function RootLayout({
