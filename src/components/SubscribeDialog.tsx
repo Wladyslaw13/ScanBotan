@@ -23,7 +23,8 @@ export function SubscribeDialog({ open, onOpenChange, onSubscribe }: Props) {
         <DialogHeader>
           <DialogTitle>Нужна подписка</DialogTitle>
           <DialogDescription>
-            Откройте все возможности СканБотан с помощью подписки.
+            Откройте все возможности СканБотан с помощью подписки. Цена: 99
+            ₽/месяц.
           </DialogDescription>
         </DialogHeader>
 
