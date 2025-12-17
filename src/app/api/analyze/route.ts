@@ -132,7 +132,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const response = await together.chat.completions.create({
-      model: 'mistralai/Ministral-3-14B-Instruct-2512',
+      model: 'Qwen/Qwen3-VL-32B-Instruct',
       messages: [
         { role: 'system', content: systemPrompt },
         {
@@ -140,7 +140,7 @@ export async function POST(req: NextRequest) {
           content: [
             {
               type: 'text',
-              text: 'Определи растение, его состояние здоровья и дай краткие, но полезные рекомендации по уходу.',
+              text: 'Определи растение, его состояние здоровья и дай полезные рекомендации по уходу.',
             },
             {
               type: 'image_url',
@@ -151,7 +151,7 @@ export async function POST(req: NextRequest) {
           ],
         },
       ],
-      temperature: 0.2,
+      temperature: 0.3,
       max_tokens: 600,
     });
 
