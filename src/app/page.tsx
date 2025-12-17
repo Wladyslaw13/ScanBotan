@@ -359,8 +359,9 @@ export default function Home() {
               <Button
                 variant='secondary'
                 onClick={() => signIn('google')}
-                className='w-full'
+                className='w-full flex items-center justify-center gap-2'
               >
+                <img src='/google-logo.png' alt='Google' className='h-5 w-5' />
                 Google
               </Button>
               <div className='h-px bg-border my-2' />
