@@ -19,12 +19,10 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: 'СканБотан',
-  description:
-    'Удобный инструмент для сканирования и управления ботаническими данными.',
+  description: 'Ваш Партнёр По Уходу За Растениями',
   openGraph: {
     title: 'СканБотан',
-    description:
-      'Удобный инструмент для сканирования и управления ботаническими данными.',
+    description: 'Ваш Партнёр По Уходу За Растениями',
     url: 'https://scan-botan-13.vercel.app',
     siteName: 'СканБотан',
     images: [
