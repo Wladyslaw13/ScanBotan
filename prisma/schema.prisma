@@ -9,7 +9,6 @@ datasource db {
 
 enum SubscriptionStatus {
   active
-  inactive
   past_due
   canceled
 }
@@ -82,10 +81,11 @@ model Scan {
 model Subscription {
   id               Int                @id @default(autoincrement())
   userId           Int                @unique
-  status           SubscriptionStatus @default(inactive)
-  provider         String
+  status           SubscriptionStatus @default(canceled)
+  provider         String?
   externalId       String?
   currentPeriodEnd DateTime?
+  paymentMethodId   String?
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
 
@@ -104,3 +104,15 @@ model Payment {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
+
+model PromoCode {
+  id          Int      @id @default(autoincrement())
+  code        String   @unique
+  percentOff  Int?
+  active      Boolean  @default(true)
+  maxUses     Int?
+  usedCount   Int      @default(0)
+  expiresAt   DateTime?
+  createdAt   DateTime @default(now())
+}
+
