@@ -7,14 +7,16 @@ import { checkSubscription } from '@/lib/checkSubscription';
 
 export async function GET(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return new NextResponse('Unauthorized', { status: 401 });
   }
+  
+  const { id } = await params;
 
-  const scanId = Number(params.id);
+  const scanId = Number(id);
   if (!Number.isFinite(scanId)) {
     return new NextResponse('Not found', { status: 404 });
   }

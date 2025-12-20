@@ -18,10 +18,10 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'СканБотан',
+  title: 'СканБотан - Сканирование и управление ботаническими данными',
   description: 'Ваш Партнёр По Уходу За Растениями',
   openGraph: {
-    title: 'СканБотан',
+    title: 'СканБотан - Сканирование и управление ботаническими данными',
     description: 'Ваш Партнёр По Уходу За Растениями',
     url: 'https://scan-botan-13.vercel.app',
     siteName: 'СканБотан',
@@ -66,7 +66,9 @@ export default async function RootLayout({
         />
       </head>
       <body className='antialiased'>
-        <Providers session={session}>{children}</Providers>
+        <Providers session={session}>
+          <div className='flex min-h-screen flex-col'>{children}</div>
+        </Providers>
       </body>
     </html>
   );

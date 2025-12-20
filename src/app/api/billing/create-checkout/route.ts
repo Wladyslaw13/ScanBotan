@@ -18,21 +18,13 @@ export async function POST(req: Request) {
   const secret = process.env.YOOKASSA_SECRET;
   const siteUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
 
-  if (!shopId || !secret)
-    return NextResponse.json(
-      { error: 'YooKassa не настроена' },
-      { status: 500 }
-    );
-
-  console.log('YOOKASSA_SHOP_ID', shopId);
-  console.log('YOOKASSA_SECRET', secret ? 'OK' : 'MISSING');
-
   let finalPrice = BASE_PRICE;
   let appliedPromoCode: string | null = null;
 
-  if (promoCode) {
+  if (promoCode && typeof promoCode === 'string') {
+    const promoCodeUpper = promoCode.trim().toUpperCase();
     const promo = await prisma.promoCode.findUnique({
-      where: { code: promoCode },
+      where: { code: promoCodeUpper },
     });
 
     if (
@@ -41,12 +33,31 @@ export async function POST(req: Request) {
       (!promo.expiresAt || promo.expiresAt > new Date()) &&
       (!promo.maxUses || promo.usedCount < promo.maxUses)
     ) {
-      if (promo.percentOff !== null) {
-        finalPrice = Math.round(BASE_PRICE * (1 - promo.percentOff / 100));
+      // Проверяем, использовал ли этот пользователь уже этот промокод
+      // Проверяем через Payment (если был оплаченный платеж с промокодом)
+      // и через активную подписку с provider='promo' (для бесплатных промокодов)
+      // Используем временное решение: проверяем есть ли активная подписка от промокода
+      const existingSub = await prisma.subscription.findUnique({
+        where: { userId },
+      });
+
+      if (existingSub?.provider === 'promo') {
+        const now = new Date();
+        const periodValid = existingSub.currentPeriodEnd 
+          ? existingSub.currentPeriodEnd > now 
+          : false;
+        // Если есть активная подписка от промокода, запрещаем повторное использование
+        // (в будущем можно добавить поле promoCode в Subscription для точной проверки)
+        if (periodValid || existingSub.status === 'active') {
+          return NextResponse.json(
+            { error: 'Вы уже использовали промокод для этого аккаунта. Каждый промокод можно использовать только один раз.' },
+            { status: 400 }
+          );
+        }
       }
 
       if (promo.percentOff !== null) {
-        finalPrice = Math.max(0, BASE_PRICE - promo.percentOff);
+        finalPrice = Math.max(0, Math.round(BASE_PRICE * (1 - promo.percentOff / 100)));
       }
 
       appliedPromoCode = promo.code;
@@ -54,6 +65,7 @@ export async function POST(req: Request) {
   }
 
   if (finalPrice === 0) {
+    // Промокоды НЕ суммируют сроки - всегда ставим новый месяц от текущего момента
     const periodEnd = new Date();
     periodEnd.setMonth(periodEnd.getMonth() + 1);
 
@@ -82,6 +94,16 @@ export async function POST(req: Request) {
     return NextResponse.json({ free: true });
   }
 
+  if (!shopId || !secret) {
+    return NextResponse.json(
+      { error: 'YooKassa не настроена' },
+      { status: 500 }
+    );
+  }
+
+  console.log('YOOKASSA_SHOP_ID', shopId);
+  console.log('YOOKASSA_SECRET', secret ? 'OK' : 'MISSING');
+
   const yoo = new (YooKassa as any)({ shopId, secretKey: secret });
 
   try {
@@ -90,7 +112,7 @@ export async function POST(req: Request) {
       capture: true,
       confirmation: {
         type: 'redirect',
-        return_url: `${siteUrl}/billing/success`,
+        return_url: `${siteUrl}/scan`,
       },
       payment_method_data: {
         type: 'bank_card',

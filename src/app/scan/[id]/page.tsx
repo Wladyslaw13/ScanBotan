@@ -7,6 +7,7 @@ import { Session } from 'next-auth';
 import { notFound } from 'next/navigation';
 import { checkSubscription } from '@/lib/checkSubscription';
 import { ScanResultClient } from './ScanResultClient';
+import { AppLayout } from '@/components/AppLayout';
 
 export default async function ScanResultPage({
   params,
@@ -56,31 +57,34 @@ export default async function ScanResultPage({
         : 'Выберите фото с одним чётким растением и попробуйте снова.';
 
     return (
-      <div className='min-h-screen flex items-center justify-center bg-red-50 dark:bg-red-900/20'>
-        <div className='max-w-2xl p-6 text-center'>
-          <p className='text-red-600 dark:text-red-400 text-3xl font-semibold mb-4'>
-            Растение не распознано
-          </p>
-          <p className='text-muted-foreground mb-6'>{reason}</p>
-          <Link href='/' className='inline-flex items-center text-primary'>
-            ← Назад
-          </Link>
+      <AppLayout>
+        <div className='container mx-auto px-4 sm:px-6 lg:px-8 py-12'>
+          <div className='max-w-2xl mx-auto text-center'>
+            <p className='text-destructive text-3xl font-semibold mb-4'>
+              Растение не распознано
+            </p>
+            <p className='text-muted-foreground mb-6'>{reason}</p>
+            <Link href='/scan' className='inline-flex items-center text-primary hover:underline'>
+              ← Назад к сканированию
+            </Link>
+          </div>
         </div>
-      </div>
+      </AppLayout>
     );
   }
 
   return (
-    <div className='min-h-screen'>
-      <div className='max-w-5xl mx-auto p-6'>
-        <div className='mb-6'>
-          <Link
-            href='/'
-            className='text-sm text-foreground/70 hover:text-foreground'
-          >
-            ← Назад
-          </Link>
-        </div>
+    <AppLayout>
+      <div className='container mx-auto px-4 sm:px-6 lg:px-8 py-8'>
+        <div className='max-w-5xl mx-auto'>
+          <div className='mb-6'>
+            <Link
+              href='/scan'
+              className='text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1'
+            >
+              ← Назад к сканированию
+            </Link>
+          </div>
 
         <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
           <div className='rounded-xl border border-green-400/50 bg-muted/40 p-3'>
@@ -126,13 +130,14 @@ export default async function ScanResultPage({
           </div>
         </div>
 
-        <div className='mt-6 justify-center flex'>
-          <ScanResultClient
-            scanId={scan.id}
-            hasSubscription={hasSubscription}
-          />
+          <div className='mt-6 justify-center flex'>
+            <ScanResultClient
+              scanId={scan.id}
+              hasSubscription={hasSubscription}
+            />
+          </div>
         </div>
       </div>
-    </div>
+    </AppLayout>
   );
 }

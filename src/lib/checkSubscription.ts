@@ -5,5 +5,26 @@ export async function checkSubscription(userId: number) {
     where: { userId },
   });
 
-  return subscription?.status === 'active';
+  if (!subscription) {
+    return false;
+  }
+
+  // Подписка считается активной если:
+  // 1. Статус 'active' И период не истек, ИЛИ
+  // 2. Период еще не истек (даже если статус 'canceled' - отмена только отменяет продление, не текущий доступ)
+  const now = new Date();
+  const periodValid = subscription.currentPeriodEnd 
+    ? subscription.currentPeriodEnd > now 
+    : false;
+
+  if (subscription.status === 'active' && periodValid) {
+    return true;
+  }
+
+  // Если подписка отменена, но период еще не истек - доступ сохраняется
+  if (subscription.status === 'canceled' && periodValid) {
+    return true;
+  }
+
+  return false;
 }

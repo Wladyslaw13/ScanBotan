@@ -10,10 +10,17 @@ export async function GET() {
   const userId = Number((session as any).user.id);
 
   const sub = await prisma.subscription.findUnique({ where: { userId } });
+  const now = new Date();
+  const periodValid = sub?.currentPeriodEnd 
+    ? sub.currentPeriodEnd > now 
+    : false;
+  
+  // Подписка активна если статус 'active' и период не истек, ИЛИ
+  // период еще не истек (даже если статус 'canceled' - отмена только отменяет продление)
   const hasActive =
     !!sub &&
-    sub.status === 'active' &&
-    (!sub.currentPeriodEnd || sub.currentPeriodEnd > new Date());
+    periodValid &&
+    (sub.status === 'active' || sub.status === 'canceled');
 
   if (!hasActive) {
     return NextResponse.json({ subscribed: false, scans: [] }, { status: 402 });
@@ -22,7 +29,7 @@ export async function GET() {
   const scans = await prisma.scan.findMany({
     where: { userId, plantFound: true },
     orderBy: { createdAt: 'desc' },
-    select: { id: true, createdAt: true, result: true },
+    select: { id: true, createdAt: true, result: true, isFavorite: true },
   });
 
   return NextResponse.json({ subscribed: true, scans });

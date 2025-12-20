@@ -73,6 +73,7 @@ model Scan {
   imageUrl   String
   result     Json?
   plantFound Boolean  @default(false)
+  isFavorite Boolean  @default(false)
   createdAt  DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -85,7 +86,7 @@ model Subscription {
   provider         String?
   externalId       String?
   currentPeriodEnd DateTime?
-  paymentMethodId   String?
+  paymentMethodId  String?
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
 
@@ -106,13 +107,12 @@ model Payment {
 }
 
 model PromoCode {
-  id          Int      @id @default(autoincrement())
-  code        String   @unique
-  percentOff  Int?
-  active      Boolean  @default(true)
-  maxUses     Int?
-  usedCount   Int      @default(0)
-  expiresAt   DateTime?
-  createdAt   DateTime @default(now())
+  id         Int       @id @default(autoincrement())
+  code       String    @unique
+  percentOff Int?
+  active     Boolean   @default(true)
+  maxUses    Int?
+  usedCount  Int       @default(0)
+  expiresAt  DateTime?
+  createdAt  DateTime  @default(now())
 }
-
