@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import Link from 'next/link';
-import { Camera, CheckCircle2, BarChart3, Download, Heart } from 'lucide-react';
+import { Camera, CheckCircle2, MapPin, Download, Heart } from 'lucide-react';
 
 export default function MarketingPage() {
   return (
@@ -68,10 +68,19 @@ export default function MarketingPage() {
               </Card>
               <Card>
                 <CardHeader>
-                  <BarChart3 className='mb-4 h-10 w-10 text-primary' />
+                  <Heart className='mb-4 h-10 w-10 text-primary' />
                   <CardTitle>Анализ здоровья</CardTitle>
                   <CardDescription>
                     Оценка состояния растения и выявление возможных проблем
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <MapPin className='mb-4 h-10 w-10 text-primary' />
+                  <CardTitle>Место происхождения</CardTitle>
+                  <CardDescription>
+                    Информация о естественной среде обитания растения
                   </CardDescription>
                 </CardHeader>
               </Card>
@@ -99,15 +108,6 @@ export default function MarketingPage() {
                   <CardTitle>История и избранное</CardTitle>
                   <CardDescription>
                     Сохранение всех сканирований и возможность отметить важные
-                  </CardDescription>
-                </CardHeader>
-              </Card>
-              <Card>
-                <CardHeader>
-                  <CheckCircle2 className='mb-4 h-10 w-10 text-primary' />
-                  <CardTitle>Простота использования</CardTitle>
-                  <CardDescription>
-                    Интуитивный интерфейс, работающий на всех устройствах
                   </CardDescription>
                 </CardHeader>
               </Card>
@@ -158,6 +158,19 @@ export default function MarketingPage() {
                       Растение выглядит здоровым. Листья имеют естественный
                       зеленый цвет, нет признаков вредителей или заболеваний.
                     </p>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Место происхождения</CardTitle>
+                  <CardDescription>
+                    Информация о естественной среде обитания растения
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className='rounded-lg border bg-background p-4'>
+                    <p className='font-medium'>Родина: Океания</p>
                   </div>
                 </CardContent>
               </Card>

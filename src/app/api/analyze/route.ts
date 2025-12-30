@@ -125,8 +125,12 @@ export async function POST(req: NextRequest) {
   "plantName": string | null,
   "healthCondition": string | null,
   "recommendations": string[],
+  "originContinent": string | null,
   "reason": string | null
 }
+
+Поле "originContinent" должно содержать одну из следующих частей света на русском языке или "null":
+"Африка", "Антарктида", "Азия", "Европа", "Северная Америка", "Южная Америка", "Океания".
 
 Язык: русский.`;
 
@@ -140,7 +144,7 @@ export async function POST(req: NextRequest) {
           content: [
             {
               type: 'text',
-              text: 'Определи растение, его состояние здоровья и дай полезные рекомендации по уходу.',
+              text: 'Определи растение, его состояние здоровья, дай полезные рекомендации по уходу и место происхождения.',
             },
             {
               type: 'image_url',
@@ -168,7 +172,7 @@ export async function POST(req: NextRequest) {
             content: [
               {
                 type: 'text',
-                text: 'Определи растение, его состояние здоровья и дай краткие, но полезные рекомендации по уходу.',
+                text: 'Определи растение, его состояние здоровья, дай краткие, но полезные рекомендации по уходу и место происхождения.',
               },
               {
                 type: 'image_url',
@@ -210,6 +214,25 @@ export async function POST(req: NextRequest) {
 
     if (!Array.isArray(parsed.recommendations)) {
       parsed.recommendations = [];
+    }
+
+    // Валидация и нормализация поля originContinent
+    const allowedContinents = new Set([
+      'Африка',
+      'Антарктида',
+      'Азия',
+      'Европа',
+      'Северная Америка',
+      'Южная Америка',
+      'Океания',
+    ]);
+
+    if (typeof parsed.originContinent !== 'string') {
+      parsed.originContinent = null;
+    } else {
+      // Трим и нормализация пробелов
+      const val = parsed.originContinent.trim();
+      parsed.originContinent = allowedContinents.has(val) ? val : null;
     }
 
     const plantFound = Boolean(parsed.plantFound);

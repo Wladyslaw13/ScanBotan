@@ -7,29 +7,21 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum SubscriptionStatus {
-  active
-  past_due
-  canceled
-}
-
 model User {
-  id            Int       @id @default(autoincrement())
+  id            Int           @id @default(autoincrement())
   name          String?
-  email         String?   @unique
+  email         String?       @unique
   emailVerified DateTime?
   image         String?
-  username      String?   @unique
+  username      String?       @unique
   password      String?
-
-  accounts     Account[]
-  sessions     Session[]
-  scans        Scan[]
-  subscription Subscription?
-  payments     Payment[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  accounts      Account[]
+  payments      Payment[]
+  scans         Scan[]
+  sessions      Session[]
+  subscription  Subscription?
 }
 
 model Account {
@@ -38,15 +30,14 @@ model Account {
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
+  refresh_token     String?
+  access_token      String?
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String? @db.Text
+  id_token          String?
   session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
 }
@@ -73,10 +64,9 @@ model Scan {
   imageUrl   String
   result     Json?
   plantFound Boolean  @default(false)
-  isFavorite Boolean  @default(false)
   createdAt  DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isFavorite Boolean  @default(false)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Subscription {
@@ -86,11 +76,10 @@ model Subscription {
   provider         String?
   externalId       String?
   currentPeriodEnd DateTime?
-  paymentMethodId  String?
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  paymentMethodId  String?
+  user             User               @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Payment {
@@ -98,12 +87,11 @@ model Payment {
   userId            Int
   provider          String
   providerPaymentId String   @unique
-  amount            Int // minor units (kopeks)
+  amount            Int
   currency          String   @default("RUB")
   status            String
   createdAt         DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model PromoCode {
@@ -115,4 +103,10 @@ model PromoCode {
   usedCount  Int       @default(0)
   expiresAt  DateTime?
   createdAt  DateTime  @default(now())
+}
+
+enum SubscriptionStatus {
+  active
+  past_due
+  canceled
 }

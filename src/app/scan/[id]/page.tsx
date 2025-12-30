@@ -45,6 +45,11 @@ export default async function ScanResultPage({
     ? result.recommendations
     : [];
 
+  const originContinent: string | null =
+    (typeof result?.originContinent === 'string' && result.originContinent) ||
+    (typeof result?.origin === 'string' && result.origin) ||
+    null;
+
   function capitalize(str?: unknown) {
     if (typeof str !== 'string') return '';
     return str.charAt(0).toUpperCase() + str.slice(1);
@@ -64,7 +69,10 @@ export default async function ScanResultPage({
               Растение не распознано
             </p>
             <p className='text-muted-foreground mb-6'>{reason}</p>
-            <Link href='/scan' className='inline-flex items-center text-primary hover:underline'>
+            <Link
+              href='/scan'
+              className='inline-flex items-center text-primary hover:underline'
+            >
               ← Назад к сканированию
             </Link>
           </div>
@@ -86,49 +94,62 @@ export default async function ScanResultPage({
             </Link>
           </div>
 
-        <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-          <div className='rounded-xl border border-green-400/50 bg-muted/40 p-3'>
-            <div className='relative rounded-lg overflow-hidden bg-muted h-full'>
-              <Image
-                src={scan.imageUrl}
-                alt='Загруженное растение'
-                fill
-                className='object-cover'
-              />
+          <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+            <div className='rounded-xl border border-green-400/50 bg-muted/40 p-3'>
+              <div className='relative rounded-lg overflow-hidden bg-muted h-full'>
+                <Image
+                  src={scan.imageUrl}
+                  alt='Загруженное растение'
+                  fill
+                  className='object-cover'
+                />
+              </div>
+            </div>
+
+            <div className='space-y-4'>
+              <div className='rounded-xl border p-4'>
+                <h2 className='text-lg font-semibold mb-2'>
+                  Название растения
+                </h2>
+                <p className='text-foreground/90'>
+                  {capitalize(plantName) || 'Неизвестно'}
+                </p>
+              </div>
+
+              <div className='rounded-xl border p-4'>
+                <h2 className='text-lg font-semibold mb-2'>
+                  Состояние здоровья
+                </h2>
+                <p className='text-foreground/90'>
+                  {capitalize(healthCondition) || '—'}
+                </p>
+              </div>
+
+              <div className='rounded-xl border p-4'>
+                <h2 className='text-lg font-semibold mb-2'>
+                  Место происхождения
+                </h2>
+                <p className='text-foreground/90'>
+                  {originContinent ? capitalize(originContinent) : '—'}
+                </p>
+              </div>
+
+              <div className='rounded-xl border p-4'>
+                <h2 className='text-lg font-semibold mb-2'>
+                  Рекомендации по уходу
+                </h2>
+                <ul className='list-disc pl-5 space-y-1 text-foreground/90'>
+                  {recommendations.length === 0 ? (
+                    <li>Нет рекомендаций</li>
+                  ) : (
+                    recommendations.map((r: string, i: number) => (
+                      <li key={i}>{capitalize(r)}</li>
+                    ))
+                  )}
+                </ul>
+              </div>
             </div>
           </div>
-
-          <div className='space-y-4'>
-            <div className='rounded-xl border p-4'>
-              <h2 className='text-lg font-semibold mb-2'>Название растения</h2>
-              <p className='text-foreground/90'>
-                {capitalize(plantName) || 'Неизвестно'}
-              </p>
-            </div>
-
-            <div className='rounded-xl border p-4'>
-              <h2 className='text-lg font-semibold mb-2'>Состояние здоровья</h2>
-              <p className='text-foreground/90'>
-                {capitalize(healthCondition) || '—'}
-              </p>
-            </div>
-
-            <div className='rounded-xl border p-4'>
-              <h2 className='text-lg font-semibold mb-2'>
-                Рекомендации по уходу
-              </h2>
-              <ul className='list-disc pl-5 space-y-1 text-foreground/90'>
-                {recommendations.length === 0 ? (
-                  <li>Нет рекомендаций</li>
-                ) : (
-                  recommendations.map((r: string, i: number) => (
-                    <li key={i}>{capitalize(r)}</li>
-                  ))
-                )}
-              </ul>
-            </div>
-          </div>
-        </div>
 
           <div className='mt-6 justify-center flex'>
             <ScanResultClient
