@@ -29,6 +29,7 @@ import {
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { is } from 'date-fns/locale';
 
 export function BillingClient() {
   const [loading, setLoading] = useState(true);
@@ -359,75 +360,81 @@ export function BillingClient() {
                   </div>
                 )}
 
-                <div className='flex flex-col sm:flex-row gap-3 pt-4'>
-                  <Button
-                    variant='outline'
-                    onClick={handleChangeCard}
-                    disabled={changingCard}
-                    className='gap-2'
-                  >
-                    <CreditCard className='h-4 w-4' />
-                    {changingCard ? 'Загрузка...' : 'Изменить карту'}
-                  </Button>
+                {isActive && (
+                  <div className='flex flex-col sm:flex-row gap-3 pt-4'>
+                    <Button
+                      variant='outline'
+                      onClick={handleChangeCard}
+                      disabled={changingCard}
+                      className='gap-2'
+                    >
+                      <CreditCard className='h-4 w-4' />
+                      {changingCard ? 'Загрузка...' : 'Изменить карту'}
+                    </Button>
 
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button
-                        variant='outline'
-                        disabled={unbindingCard}
-                        className='gap-2'
-                      >
-                        <CreditCard className='h-4 w-4' />
-                        {unbindingCard ? 'Загрузка...' : 'Отвязать карту'}
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Отвязать карту?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Мы отключим сохраненный способ оплаты в YooKassa.
-                          Автопродление подписки будет выключено, но доступ
-                          сохранится до конца оплаченного периода.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Отмена</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={handleUnbindCard}
-                          className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
-                        >
-                          Отвязать карту
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                    {isActive && hasSavedCard && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant='outline'
+                            disabled={unbindingCard}
+                            className='gap-2'
+                          >
+                            <CreditCard className='h-4 w-4' />
+                            {unbindingCard ? 'Загрузка...' : 'Отвязать карту'}
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Отвязать карту?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Мы отключим сохраненный способ оплаты в YooKassa.
+                              Автопродление подписки будет выключено, но доступ
+                              сохранится до конца оплаченного периода.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Отмена</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={handleUnbindCard}
+                              className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
+                            >
+                              Отвязать карту
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
 
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant='destructive' disabled={cancelling}>
-                        Отменить подписку
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Отменить подписку?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Вы уверены, что хотите отменить подписку? Вы сохраните
-                          доступ до конца текущего периода оплаты.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Отмена</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={handleCancelSubscription}
-                          className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
-                        >
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant='destructive' disabled={cancelling}>
                           Отменить подписку
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </div>
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>
+                            Отменить подписку?
+                          </AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Вы уверены, что хотите отменить подписку? Вы
+                            сохраните доступ до конца текущего периода оплаты.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Отмена</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={handleCancelSubscription}
+                            className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
+                          >
+                            Отменить подписку
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
