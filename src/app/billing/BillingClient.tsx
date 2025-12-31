@@ -35,6 +35,7 @@ export function BillingClient() {
   const [subscription, setSubscription] = useState<any>(null);
   const [payments, setPayments] = useState<any[]>([]);
   const [changingCard, setChangingCard] = useState(false);
+  const [unbindingCard, setUnbindingCard] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [promoCode, setPromoCode] = useState('');
   const [promoValidating, setPromoValidating] = useState(false);
@@ -47,7 +48,7 @@ export function BillingClient() {
 
   useEffect(() => {
     loadBillingData();
-    
+
     // Загружаем промокод из URL параметров
     const params = new URLSearchParams(window.location.search);
     const promoFromUrl = params.get('promo');
@@ -94,12 +95,29 @@ export function BillingClient() {
     try {
       const res = await fetch('/api/billing/cancel', { method: 'POST' });
       if (!res.ok) throw new Error('Ошибка отмены');
-      toast.success('Подписка отменена. Доступ сохранится до конца оплаченного периода.');
+      toast.success(
+        'Подписка отменена. Доступ сохранится до конца оплаченного периода.'
+      );
       await loadBillingData();
     } catch (error) {
       toast.error('Не удалось отменить подписку');
     } finally {
       setCancelling(false);
+    }
+  }
+
+  async function handleUnbindCard() {
+    setUnbindingCard(true);
+    try {
+      const res = await fetch('/api/billing/unbind-card', { method: 'POST' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Ошибка');
+      toast.success('Карта отвязана. Автопродление отключено.');
+      await loadBillingData();
+    } catch (error: any) {
+      toast.error(error.message || 'Не удалось отвязать карту');
+    } finally {
+      setUnbindingCard(false);
     }
   }
 
@@ -187,19 +205,22 @@ export function BillingClient() {
 
   // Проверяем период подписки
   const now = new Date();
-  const periodValid = subscription?.currentPeriodEnd 
-    ? new Date(subscription.currentPeriodEnd) > now 
+  const periodValid = subscription?.currentPeriodEnd
+    ? new Date(subscription.currentPeriodEnd) > now
     : false;
-  
+
   // Для UI: подписка активна только если статус 'active' И период не истек
   const isActive = subscription?.status === 'active' && periodValid;
-  
+
   // Отмененная подписка с действующим периодом
-  const isCanceledWithAccess = subscription?.status === 'canceled' && periodValid;
+  const isCanceledWithAccess =
+    subscription?.status === 'canceled' && periodValid;
+
+  const hasSavedCard = !!subscription?.hasSavedCard;
 
   return (
     <AppLayout>
-      <div className='container mx-auto px-4 sm:px-6 lg:px-8 py-8 max-w-4xl'>
+      <div className='container mx-auto px-4 sm:px-6 lg:px-8 py-8 max-w-4xl xl:max-w-5xl 2xl:max-w-6xl'>
         <div className='mb-8'>
           <h1 className='text-3xl font-bold'>Управление подпиской</h1>
           <p className='text-muted-foreground mt-2'>
@@ -220,9 +241,9 @@ export function BillingClient() {
                 <CardDescription>Текущий статус вашей подписки</CardDescription>
               </CardHeader>
               <CardContent className='space-y-4'>
-                <div className='flex items-center justify-between'>
+                <div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
                   <div>
-                    <div className='flex items-center gap-2'>
+                    <div className='flex flex-wrap items-center gap-2'>
                       <span className='font-medium'>Статус:</span>
                       {subscription?.status && (
                         <>
@@ -234,13 +255,15 @@ export function BillingClient() {
                           ) : subscriptionStatusUI[subscription.status] ? (
                             <Badge
                               variant={
-                                subscriptionStatusUI[subscription.status].variant
+                                subscriptionStatusUI[subscription.status]
+                                  .variant
                               }
                               className='gap-1'
                             >
                               {(() => {
                                 const Icon =
-                                  subscriptionStatusUI[subscription.status].icon;
+                                  subscriptionStatusUI[subscription.status]
+                                    .icon;
                                 return <Icon className='h-3 w-3' />;
                               })()}
                               {subscriptionStatusUI[subscription.status].label}
@@ -270,7 +293,9 @@ export function BillingClient() {
                 {!isActive && (
                   <div className='pt-4 space-y-4'>
                     <div className='space-y-2'>
-                      <Label htmlFor='promo-code'>Промокод (необязательно)</Label>
+                      <Label htmlFor='promo-code'>
+                        Промокод (необязательно)
+                      </Label>
                       <div className='flex gap-2'>
                         <Input
                           id='promo-code'
@@ -304,10 +329,12 @@ export function BillingClient() {
                       )}
                       {promoInfo && promoInfo.valid && (
                         <div className='text-sm text-green-600 dark:text-green-400'>
-                          ✓ Промокод применен! Скидка {promoInfo.discountPercent}%
+                          ✓ Промокод применен! Скидка{' '}
+                          {promoInfo.discountPercent}%
                           {promoInfo.finalPrice !== undefined && (
                             <span className='block mt-1'>
-                              Итоговая цена: {(promoInfo.finalPrice / 100).toFixed(2)} ₽
+                              Итоговая цена:{' '}
+                              {(promoInfo.finalPrice / 100).toFixed(2)} ₽
                             </span>
                           )}
                         </div>
@@ -326,53 +353,81 @@ export function BillingClient() {
                       {promoInfo?.valid && promoInfo.finalPrice === 0
                         ? 'Активировать подписку бесплатно'
                         : promoInfo?.valid && promoInfo.finalPrice !== undefined
-                        ? `Оформить подписку за ${(promoInfo.finalPrice / 100).toFixed(2)} ₽/мес`
-                        : 'Оформить подписку за 99 ₽/мес'}
+                          ? `Оформить подписку за ${(promoInfo.finalPrice / 100).toFixed(2)} ₽/мес`
+                          : 'Оформить подписку за 99 ₽/мес'}
                     </Button>
                   </div>
                 )}
 
-                {isActive && (
-                  <div className='flex flex-col sm:flex-row gap-3 pt-4'>
-                    <Button
-                      variant='outline'
-                      onClick={handleChangeCard}
-                      disabled={changingCard}
-                      className='gap-2'
-                    >
-                      <CreditCard className='h-4 w-4' />
-                      {changingCard ? 'Загрузка...' : 'Изменить карту'}
-                    </Button>
+                <div className='flex flex-col sm:flex-row gap-3 pt-4'>
+                  <Button
+                    variant='outline'
+                    onClick={handleChangeCard}
+                    disabled={changingCard}
+                    className='gap-2'
+                  >
+                    <CreditCard className='h-4 w-4' />
+                    {changingCard ? 'Загрузка...' : 'Изменить карту'}
+                  </Button>
 
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant='destructive' disabled={cancelling}>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant='outline'
+                        disabled={unbindingCard}
+                        className='gap-2'
+                      >
+                        <CreditCard className='h-4 w-4' />
+                        {unbindingCard ? 'Загрузка...' : 'Отвязать карту'}
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Отвязать карту?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Мы отключим сохраненный способ оплаты в YooKassa.
+                          Автопродление подписки будет выключено, но доступ
+                          сохранится до конца оплаченного периода.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Отмена</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={handleUnbindCard}
+                          className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
+                        >
+                          Отвязать карту
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant='destructive' disabled={cancelling}>
+                        Отменить подписку
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Отменить подписку?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Вы уверены, что хотите отменить подписку? Вы сохраните
+                          доступ до конца текущего периода оплаты.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Отмена</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={handleCancelSubscription}
+                          className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
+                        >
                           Отменить подписку
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>
-                            Отменить подписку?
-                          </AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Вы уверены, что хотите отменить подписку? Вы
-                            сохраните доступ до конца текущего периода оплаты.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Отмена</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={handleCancelSubscription}
-                            className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
-                          >
-                            Отменить подписку
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
-                )}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
               </CardContent>
             </Card>
 
@@ -392,14 +447,14 @@ export function BillingClient() {
                     {payments.map((payment) => (
                       <div
                         key={payment.id}
-                        className='flex items-center justify-between p-3 rounded-lg border'
+                        className='flex flex-col gap-2 rounded-lg border p-3 sm:flex-row sm:items-center sm:justify-between'
                       >
-                        <div>
+                        <div className='min-w-0'>
                           <div className='font-medium'>
                             {(payment.amount / 100).toFixed(2)}{' '}
                             {payment.currency}
                           </div>
-                          <div className='text-sm text-muted-foreground'>
+                          <div className='text-sm text-muted-foreground break-words'>
                             {format(
                               new Date(payment.createdAt),
                               'd MMMM yyyy, HH:mm',
@@ -407,17 +462,19 @@ export function BillingClient() {
                             )}
                           </div>
                         </div>
-                        <Badge
-                          variant={
-                            payment.status === 'succeeded'
-                              ? 'default'
-                              : 'secondary'
-                          }
-                        >
-                          {payment.status === 'succeeded'
-                            ? 'Оплачено'
-                            : payment.status}
-                        </Badge>
+                        <div className='flex justify-start sm:justify-end'>
+                          <Badge
+                            variant={
+                              payment.status === 'succeeded'
+                                ? 'default'
+                                : 'secondary'
+                            }
+                          >
+                            {payment.status === 'succeeded'
+                              ? 'Оплачено'
+                              : payment.status}
+                          </Badge>
+                        </div>
                       </div>
                     ))}
                   </div>

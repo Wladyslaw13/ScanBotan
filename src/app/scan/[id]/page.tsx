@@ -1,13 +1,14 @@
 import { prisma } from '@/lib/prisma';
 import Image from 'next/image';
 import Link from 'next/link';
-import { getServerSession } from 'next-auth';
+import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { Session } from 'next-auth';
 import { notFound } from 'next/navigation';
 import { checkSubscription } from '@/lib/checkSubscription';
 import { ScanResultClient } from './ScanResultClient';
 import { AppLayout } from '@/components/AppLayout';
+import { AspectRatio } from '@/components/ui/aspect-ratio';
 
 export default async function ScanResultPage({
   params,
@@ -95,14 +96,34 @@ export default async function ScanResultPage({
           </div>
 
           <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-            <div className='rounded-xl border border-green-400/50 bg-muted/40 p-3'>
-              <div className='relative rounded-lg overflow-hidden bg-muted h-full'>
-                <Image
-                  src={scan.imageUrl}
-                  alt='Загруженное растение'
-                  fill
-                  className='object-cover'
-                />
+            <div className='rounded-xl border border-green-400/50 bg-muted/40 p-3 h-full'>
+              {/* Mobile: фиксируем высоту через aspect ratio, чтобы блок не схлопывался */}
+              <div className='md:hidden'>
+                <AspectRatio
+                  ratio={4 / 3}
+                  className='relative rounded-lg overflow-hidden bg-muted'
+                >
+                  <Image
+                    src={scan.imageUrl}
+                    alt='Загруженное растение'
+                    fill
+                    className='object-cover'
+                    sizes='100vw'
+                  />
+                </AspectRatio>
+              </div>
+
+              {/* Desktop/tablet: тянем фото по высоте строки grid */}
+              <div className='hidden md:block h-full'>
+                <div className='relative rounded-lg overflow-hidden bg-muted h-full min-h-105'>
+                  <Image
+                    src={scan.imageUrl}
+                    alt='Загруженное растение'
+                    fill
+                    className='object-cover'
+                    sizes='(min-width: 768px) 50vw, 100vw'
+                  />
+                </div>
               </div>
             </div>
 

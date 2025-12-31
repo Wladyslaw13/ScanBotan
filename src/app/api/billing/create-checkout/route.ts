@@ -43,21 +43,27 @@ export async function POST(req: Request) {
 
       if (existingSub?.provider === 'promo') {
         const now = new Date();
-        const periodValid = existingSub.currentPeriodEnd 
-          ? existingSub.currentPeriodEnd > now 
+        const periodValid = existingSub.currentPeriodEnd
+          ? existingSub.currentPeriodEnd > now
           : false;
         // Если есть активная подписка от промокода, запрещаем повторное использование
         // (в будущем можно добавить поле promoCode в Subscription для точной проверки)
         if (periodValid || existingSub.status === 'active') {
           return NextResponse.json(
-            { error: 'Вы уже использовали промокод для этого аккаунта. Каждый промокод можно использовать только один раз.' },
+            {
+              error:
+                'Вы уже использовали промокод для этого аккаунта. Каждый промокод можно использовать только один раз.',
+            },
             { status: 400 }
           );
         }
       }
 
       if (promo.percentOff !== null) {
-        finalPrice = Math.max(0, Math.round(BASE_PRICE * (1 - promo.percentOff / 100)));
+        finalPrice = Math.max(
+          0,
+          Math.round(BASE_PRICE * (1 - promo.percentOff / 100))
+        );
       }
 
       appliedPromoCode = promo.code;
@@ -129,6 +135,18 @@ export async function POST(req: Request) {
     });
   } catch (e: any) {
     console.error('YOOKASSA ERROR', e);
+
+    if (e?.code === 'forbidden') {
+      return NextResponse.json(
+        {
+          error:
+            'Этот магазин YooKassa не поддерживает сохранение карты/повторные платежи. Обратитесь к вашему менеджеру YooKassa, чтобы включить автоплатежи.',
+          details: { id: e?.id, code: e?.code },
+        },
+        { status: 403 }
+      );
+    }
+
     return NextResponse.json(
       { error: e?.message || 'Ошибка создания платежа' },
       { status: 500 }

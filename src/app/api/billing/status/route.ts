@@ -18,6 +18,8 @@ export async function GET() {
       currentPeriodEnd: true,
       createdAt: true,
       updatedAt: true,
+      paymentMethodId: true,
+      provider: true,
     },
   });
 
@@ -32,6 +34,8 @@ export async function GET() {
         currentPeriodEnd: true,
         createdAt: true,
         updatedAt: true,
+        paymentMethodId: true,
+        provider: true,
       },
     });
   }
@@ -50,7 +54,17 @@ export async function GET() {
   });
 
   return NextResponse.json({
-    subscription: subscription || null,
+    subscription: subscription
+      ? {
+          status: subscription.status,
+          currentPeriodEnd: subscription.currentPeriodEnd,
+          createdAt: subscription.createdAt,
+          updatedAt: subscription.updatedAt,
+          hasSavedCard:
+            subscription.provider === 'yookassa' &&
+            !!subscription.paymentMethodId,
+        }
+      : null,
     payments,
   });
 }
