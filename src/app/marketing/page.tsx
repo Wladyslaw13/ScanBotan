@@ -10,7 +10,14 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import Link from 'next/link';
-import { Camera, CheckCircle2, MapPin, Download, Heart } from 'lucide-react';
+import {
+  Camera,
+  CheckCircle2,
+  MapPin,
+  Download,
+  Heart,
+  BarChart3,
+} from 'lucide-react';
 
 export default function MarketingPage() {
   return (
@@ -68,7 +75,7 @@ export default function MarketingPage() {
               </Card>
               <Card>
                 <CardHeader>
-                  <Heart className='mb-4 h-10 w-10 text-primary' />
+                  <BarChart3 className='mb-4 h-10 w-10 text-primary' />
                   <CardTitle>Анализ здоровья</CardTitle>
                   <CardDescription>
                     Оценка состояния растения и выявление возможных проблем
