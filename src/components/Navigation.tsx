@@ -46,9 +46,7 @@ export function Navigation() {
               className='h-8 w-auto'
               style={{ transform: 'scale(1.2) translateY(-1.5px)' }}
             />
-            <span className='hidden text-xl font-semibold sm:inline-block'>
-              СканБотан
-            </span>
+            <span className='text-xl font-semibold'>СканБотан</span>
           </Link>
 
           {/* Desktop Navigation */}
