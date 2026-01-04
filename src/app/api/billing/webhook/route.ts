@@ -4,24 +4,46 @@ import crypto from 'crypto';
 
 export async function POST(req: NextRequest) {
   try {
-    const secret = process.env.YOOKASSA_SECRET;
+    // В YooKassa для нотификаций может использоваться отдельный "секретный ключ для уведомлений".
+    // Поддерживаем оба варианта, чтобы не ломать текущую конфигурацию.
+    const secret =
+      process.env.YOOKASSA_WEBHOOK_SECRET || process.env.YOOKASSA_SECRET;
     if (!secret) {
       return NextResponse.json({ error: 'No secret' }, { status: 500 });
     }
 
-    const rawBody = await req.text();
+    const rawBodyBuffer = Buffer.from(await req.arrayBuffer());
+    const rawBody = rawBodyBuffer.toString('utf8');
 
-    const signature = req.headers.get('YooKassa-Signature');
+    // YooKassa обычно присылает подпись в заголовке Content-HMAC (base64).
+    // Оставляем обратную совместимость с ранее использованным YooKassa-Signature.
+    const signature =
+      req.headers.get('Content-HMAC') || req.headers.get('YooKassa-Signature');
     if (!signature) {
       return NextResponse.json({ error: 'No signature' }, { status: 400 });
     }
 
-    const expectedSignature = crypto
+    const normalizedSignature = signature.trim().replace(/^sha256=/i, '');
+
+    const expectedHex = crypto
       .createHmac('sha256', secret)
-      .update(rawBody)
+      .update(rawBodyBuffer)
       .digest('hex');
 
-    if (signature !== expectedSignature) {
+    const expectedBase64 = crypto
+      .createHmac('sha256', secret)
+      .update(rawBodyBuffer)
+      .digest('base64');
+
+    const safeEqual = (a: string, b: string) => {
+      if (a.length !== b.length) return false;
+      return crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b));
+    };
+
+    if (
+      !safeEqual(normalizedSignature, expectedBase64) &&
+      !safeEqual(normalizedSignature.toLowerCase(), expectedHex)
+    ) {
       return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
     }
 
@@ -32,7 +54,10 @@ export async function POST(req: NextRequest) {
 
     if (!object) return NextResponse.json({ ok: true });
 
-    const isChangeCard = object.metadata?.changeCard === true;
+    const isChangeCard =
+      object.metadata?.changeCard === true ||
+      object.metadata?.changeCard === 'true' ||
+      object.metadata?.changeCard === '1';
 
     if (event === 'payment.succeeded' || object?.status === 'succeeded') {
       const paymentId: string = object.id;
