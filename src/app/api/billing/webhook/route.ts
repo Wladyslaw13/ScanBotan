@@ -6,29 +6,6 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const shopId = process.env.YOOKASSA_SHOP_ID;
-  const secret = process.env.YOOKASSA_SECRET;
-
-  if (!shopId || !secret) {
-    console.error('[Webhook] Missing YOOKASSA credentials');
-    return NextResponse.json({ error: 'Config error' }, { status: 500 });
-  }
-
-  // ✅ Basic Auth
-  const auth = req.headers.get('authorization');
-  if (!auth?.startsWith('Basic ')) {
-    console.warn('[Webhook] No Basic auth header');
-    return NextResponse.json({ error: 'No auth' }, { status: 401 });
-  }
-
-  const decoded = Buffer.from(auth.split(' ')[1], 'base64').toString();
-  const [login, password] = decoded.split(':');
-
-  if (login !== shopId || password !== secret) {
-    console.warn('[Webhook] Invalid credentials');
-    return NextResponse.json({ error: 'Invalid auth' }, { status: 401 });
-  }
-
   let body: any;
   try {
     body = await req.json();
@@ -40,25 +17,66 @@ export async function POST(req: NextRequest) {
   const event = body?.event;
   const object = body?.object;
 
-  console.log(`[Webhook] Event: ${event}, PaymentId: ${object?.id}`);
+  console.log(
+    '[Webhook] Received:',
+    JSON.stringify({ event, paymentId: object?.id, metadata: object?.metadata })
+  );
 
   if (!event || !object) {
+    console.warn('[Webhook] Missing event or object');
     return NextResponse.json({ ok: true });
   }
 
-  // ✅ Обработка разных событий
+  // ✅ Проверяем что это реальный платёж через API YooKassa
   if (event === 'payment.succeeded') {
+    const isValid = await verifyPaymentWithYooKassa(object.id);
+    if (!isValid) {
+      console.warn('[Webhook] Payment verification failed:', object.id);
+      return NextResponse.json({ error: 'Invalid payment' }, { status: 400 });
+    }
     return handlePaymentSucceeded(object);
   }
 
   if (event === 'payment.canceled') {
     console.log(`[Webhook] Payment canceled: ${object.id}`);
-    // Можно обновить статус платежа если нужно
     return NextResponse.json({ ok: true });
   }
 
-  // Неизвестное событие — просто подтверждаем получение
   return NextResponse.json({ ok: true });
+}
+
+// ✅ Проверяем платёж через API YooKassa (вместо Basic Auth)
+async function verifyPaymentWithYooKassa(paymentId: string): Promise<boolean> {
+  const shopId = process.env.YOOKASSA_SHOP_ID;
+  const secret = process.env.YOOKASSA_SECRET;
+
+  if (!shopId || !secret) {
+    console.error('[Webhook] Missing YOOKASSA credentials for verification');
+    return false;
+  }
+
+  try {
+    const response = await fetch(
+      `https://api.yookassa.ru/v3/payments/${paymentId}`,
+      {
+        headers: {
+          Authorization: `Basic ${Buffer.from(`${shopId}:${secret}`).toString('base64')}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      console.error('[Webhook] YooKassa API error:', response.status);
+      return false;
+    }
+
+    const payment = await response.json();
+    console.log('[Webhook] Payment verified:', payment.status);
+    return payment.status === 'succeeded';
+  } catch (e) {
+    console.error('[Webhook] Failed to verify payment:', e);
+    return false;
+  }
 }
 
 async function handlePaymentSucceeded(object: any) {

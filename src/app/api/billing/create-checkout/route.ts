@@ -4,12 +4,13 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import YooKassa from 'yookassa';
 
-const BASE_PRICE = 9900;
+const BASE_PRICE = 9900; // 99 рублей в копейках
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions as any);
-  if (!session || !(session as any).user?.id)
+  if (!session || !(session as any).user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
   const userId = Number((session as any).user.id);
   const { promoCode } = await req.json().catch(() => ({}));
@@ -21,6 +22,7 @@ export async function POST(req: Request) {
   let finalPrice = BASE_PRICE;
   let appliedPromoCode: string | null = null;
 
+  // Обработка промокода
   if (promoCode && typeof promoCode === 'string') {
     const promoCodeUpper = promoCode.trim().toUpperCase();
     const promo = await prisma.promoCode.findUnique({
@@ -33,10 +35,7 @@ export async function POST(req: Request) {
       (!promo.expiresAt || promo.expiresAt > new Date()) &&
       (!promo.maxUses || promo.usedCount < promo.maxUses)
     ) {
-      // Проверяем, использовал ли этот пользователь уже этот промокод
-      // Проверяем через Payment (если был оплаченный платеж с промокодом)
-      // и через активную подписку с provider='promo' (для бесплатных промокодов)
-      // Используем временное решение: проверяем есть ли активная подписка от промокода
+      // Проверяем, использовал ли пользователь уже промокод
       const existingSub = await prisma.subscription.findUnique({
         where: { userId },
       });
@@ -46,8 +45,6 @@ export async function POST(req: Request) {
         const periodValid = existingSub.currentPeriodEnd
           ? existingSub.currentPeriodEnd > now
           : false;
-        // Если есть активная подписка от промокода, запрещаем повторное использование
-        // (в будущем можно добавить поле promoCode в Subscription для точной проверки)
         if (periodValid || existingSub.status === 'active') {
           return NextResponse.json(
             {
@@ -70,8 +67,8 @@ export async function POST(req: Request) {
     }
   }
 
+  // Если промокод дает 100% скидку — активируем подписку сразу
   if (finalPrice === 0) {
-    // Промокоды НЕ суммируют сроки - всегда ставим новый месяц от текущего момента
     const periodEnd = new Date();
     periodEnd.setMonth(periodEnd.getMonth() + 1);
 
@@ -100,15 +97,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ free: true });
   }
 
+  // Иначе создаем платеж в YooKassa
   if (!shopId || !secret) {
     return NextResponse.json(
       { error: 'YooKassa не настроена' },
       { status: 500 }
     );
   }
-
-  console.log('YOOKASSA_SHOP_ID', shopId);
-  console.log('YOOKASSA_SECRET', secret ? 'OK' : 'MISSING');
 
   const yoo = new (YooKassa as any)({ shopId, secretKey: secret });
 
@@ -118,7 +113,7 @@ export async function POST(req: Request) {
       capture: true,
       confirmation: {
         type: 'redirect',
-        return_url: `${siteUrl}/scan`,
+        return_url: `${siteUrl}/billing`,
       },
       payment_method_data: {
         type: 'bank_card',

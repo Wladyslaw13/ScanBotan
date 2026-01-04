@@ -49,14 +49,6 @@ export function BillingClient() {
 
   useEffect(() => {
     loadBillingData();
-
-    // Загружаем промокод из URL параметров
-    const params = new URLSearchParams(window.location.search);
-    const promoFromUrl = params.get('promo');
-    if (promoFromUrl) {
-      setPromoCode(promoFromUrl.toUpperCase());
-      // Валидация произойдет автоматически через debounce useEffect
-    }
   }, []);
 
   useEffect(() => {
@@ -140,29 +132,36 @@ export function BillingClient() {
       if (data.valid) {
         toast.success(`Промокод применен! Скидка ${data.discountPercent}%`);
       } else {
-        // Показываем ошибку только при явной проверке (Enter или blur), не при debounce
-        // toast.error(data.error || 'Неверный промокод');
+        toast.error(data.error || 'Неверный промокод');
       }
     } catch (error) {
       setPromoInfo({ valid: false, error: 'Ошибка проверки промокода' });
+      toast.error('Ошибка проверки промокода');
     } finally {
       setPromoValidating(false);
     }
   }, []);
 
-  // Debounce для валидации промокода
+  // Проверяем промокод из URL при загрузке
   useEffect(() => {
-    if (!promoCode.trim()) {
-      setPromoInfo(null);
-      return;
+    const params = new URLSearchParams(window.location.search);
+    const promoFromUrl = params.get('promo');
+    if (promoFromUrl && !promoInfo) {
+      setPromoCode(promoFromUrl.toUpperCase());
+      validatePromoCode(promoFromUrl);
     }
+  }, [validatePromoCode, promoInfo]);
 
-    const timer = setTimeout(() => {
+  const handleApplyPromo = () => {
+    if (promoCode.trim()) {
       validatePromoCode(promoCode);
-    }, 500); // Валидация через 500ms после последнего ввода
+    }
+  };
 
-    return () => clearTimeout(timer);
-  }, [promoCode, validatePromoCode]);
+  const handleClearPromo = () => {
+    setPromoCode('');
+    setPromoInfo(null);
+  };
 
   async function handleSubscribe() {
     try {
@@ -305,23 +304,38 @@ export function BillingClient() {
                           onChange={(e) => {
                             const value = e.target.value.toUpperCase();
                             setPromoCode(value);
-                          }}
-                          onBlur={(e) => {
-                            // Валидируем при потере фокуса, если ещё не было валидации
-                            if (e.target.value.trim() && !promoInfo) {
-                              validatePromoCode(e.target.value);
-                            }
+                            // Сбрасываем результат валидации при изменении
+                            if (promoInfo) setPromoInfo(null);
                           }}
                           onKeyDown={(e) => {
-                            // Валидируем при нажатии Enter
                             if (e.key === 'Enter' && promoCode.trim()) {
                               e.preventDefault();
-                              validatePromoCode(promoCode);
+                              handleApplyPromo();
                             }
                           }}
-                          disabled={promoValidating}
+                          disabled={
+                            promoValidating || (promoInfo?.valid ?? false)
+                          }
                           className='flex-1'
                         />
+                        {promoInfo?.valid ? (
+                          <Button
+                            variant='outline'
+                            onClick={handleClearPromo}
+                            type='button'
+                          >
+                            Убрать
+                          </Button>
+                        ) : (
+                          <Button
+                            variant='secondary'
+                            onClick={handleApplyPromo}
+                            disabled={promoValidating || !promoCode.trim()}
+                            type='button'
+                          >
+                            {promoValidating ? 'Проверка...' : 'Применить'}
+                          </Button>
+                        )}
                       </div>
                       {promoValidating && (
                         <p className='text-sm text-muted-foreground'>
